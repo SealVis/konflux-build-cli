@@ -15,8 +15,16 @@ limitations under the License.
 */
 package main
 
-import "github.com/konflux-ci/konflux-build-cli/cmd"
+import (
+	_ "embed"
+	"strings"
+
+	"github.com/konflux-ci/konflux-build-cli/cmd"
+)
+
+//go:embed VERSION
+var version string
 
 func main() {
-	cmd.Execute()
+	cmd.Execute(strings.TrimSpace(version))
 }
