@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 1.0.1 - 2026-10-20
+
+### Changed
+
+- build: Stop searching for the `cachi2.env` file in the prefetch directory.
+- build: Temporarily mount hardcoded Cachi2 resources for backwards compatibility.
+
 ## 1.0.0 - 2026-10-12
 
 First SemVer release of the existing CLI. Images were already published as
