@@ -1319,16 +1319,12 @@ func findPrefetchResources(prefetchDir string) (*prefetchResources, error) {
 		return nil, err
 	}
 
-	// For backwards compatibility, also look for cachi2.env (but prefetch.env is preferred)
-	for _, envfile := range []string{"prefetch.env", "cachi2.env"} {
-		envfilePath := filepath.Join(prefetchDir, envfile)
-		if _, err := os.Lstat(envfilePath); err == nil {
-			l.Logger.Debugf("Found prefetch env file: %s", envfilePath)
-			resources.envFile = envfilePath
-			break
-		} else if !os.IsNotExist(err) {
-			return nil, err
-		}
+	envfilePath := filepath.Join(prefetchDir, "prefetch.env")
+	if _, err := os.Lstat(envfilePath); err == nil {
+		l.Logger.Debugf("Found prefetch env file: %s", envfilePath)
+		resources.envFile = envfilePath
+	} else if !os.IsNotExist(err) {
+		return nil, err
 	}
 
 	envJsonFile := filepath.Join(prefetchDir, "prefetch-env.json")
@@ -1388,6 +1384,12 @@ func (c *Build) integrateWithPrefetch() (*prefetchResources, error) {
 			ContainerDir: outputMountPath,
 			Options:      "z",
 		})
+		// TODO: Drop this once users have migrated from Cachi2 resources.
+		c.buildahVolumes = append(c.buildahVolumes, cliWrappers.BuildahVolume{
+			HostDir:      resources.outputDir,
+			ContainerDir: "/cachi2/output",
+			Options:      "z",
+		})
 	}
 
 	envViaSecret := false
@@ -1414,6 +1416,13 @@ func (c *Build) integrateWithPrefetch() (*prefetchResources, error) {
 		c.buildahVolumes = append(c.buildahVolumes, cliWrappers.BuildahVolume{
 			HostDir:      resources.envFile,
 			ContainerDir: envMountPath,
+			Options:      "z",
+		})
+		// TODO: Drop this once users have migrated from Cachi2 resources.
+		l.Logger.Debug("Mounting prefetch env file at /cachi2/cachi2.env")
+		c.buildahVolumes = append(c.buildahVolumes, cliWrappers.BuildahVolume{
+			HostDir:      resources.envFile,
+			ContainerDir: "/cachi2/cachi2.env",
 			Options:      "z",
 		})
 
