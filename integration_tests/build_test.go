@@ -3871,9 +3871,8 @@ RUN echo foo > /tmp/.prefetch-output/deps/gomod/user-created.txt
 			// Does not need group-write permissions here, we copy to a different location
 			prefetchDir := t.TempDir()
 			testutil.WriteFileTree(t, prefetchDir, map[string]string{
-				// Test that cachi2.env works as well
-				"cachi2.env":                  "export PREFETCH_ENV_VAR=foo\n",
 				"output/deps/generic/foo.txt": "",
+				"prefetch.env":                "export PREFETCH_ENV_VAR=foo\n",
 			})
 
 			contextDir := setupTestContext(t)
@@ -3881,9 +3880,13 @@ RUN echo foo > /tmp/.prefetch-output/deps/gomod/user-created.txt
 FROM %s
 
 RUN echo "PREFETCH_ENV_VAR=$PREFETCH_ENV_VAR"
-# Test that we're able to recreate the same structure used current in Konflux
+# Test that we're able to recreate the same structure used currently in Konflux.
 RUN cat /cachi2/cachi2.env
 RUN ls /cachi2/output/deps/generic
+RUN cat /prefetch/prefetch.env
+RUN ls /prefetch/output/deps/generic
+
+RUN [ "$(du -s /prefetch | cut -f1)" = "$(du -s /cachi2 | cut -f1)" ]
 `, baseImage))
 
 			outputRef := "localhost/test-prefetch:" + GenerateUniqueTag(t)
@@ -3894,8 +3897,8 @@ RUN ls /cachi2/output/deps/generic
 				Push:                false,
 				PrefetchDir:         "/prefetch",
 				PrefetchDirCopy:     "/workspace/prefetch-copy",
-				PrefetchEnvMount:    "/cachi2/cachi2.env",
-				PrefetchOutputMount: "/cachi2/output",
+				PrefetchEnvMount:    "/prefetch/prefetch.env",
+				PrefetchOutputMount: "/prefetch/output",
 			}
 
 			container := setupBuildContainerWithCleanup(t, buildParams, nil,
