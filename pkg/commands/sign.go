@@ -1,9 +1,11 @@
 package commands
 
 import (
-	"github.com/spf13/cobra"
-
+	"fmt"
+	"os"
 	"reflect"
+
+	"github.com/spf13/cobra"
 
 	"github.com/konflux-ci/konflux-build-cli/pkg/cliwrappers"
 	"github.com/konflux-ci/konflux-build-cli/pkg/common"
@@ -76,5 +78,32 @@ func NewSignCommand(cmd *cobra.Command) (*Sign, error) {
 }
 
 func (s *Sign) Run() error {
-	return nil
+	common.LogParameters(SignParamsConfig, s.Params)
+	// Cosign does not implement the containers-auth.json path walk.
+	// Tekton often injects path-scoped keys like "quay.io/org" into ~/.docker/config.json.
+	// Cosign only looks up the exact repo string and the registry host ("quay.io"), so it can miss those credentials.
+	//
+	// SelectRegistryAuth picks the matching token.
+	// CreateDockerConfigDir rewrites it as a host-only entry under DOCKER_CONFIG/config.json for cosign.
+	//
+	// * https://github.com/containers/image/blob/main/docs/containers-auth.json.5.md
+	// * https://konflux-ci.dev/docs/troubleshooting/registries/#failed-to-push-or-pull-image
+	registryAuth, err := common.SelectRegistryAuthFromDefaultAuthFile(s.Params.Image)
+	if err != nil {
+		return fmt.Errorf("cannot select registry authentication for image %s: %w", s.Params.Image, err)
+	}
+
+	dockerConfigDir, err := common.CreateDockerConfigDir(registryAuth)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(dockerConfigDir) }()
+
+	return s.CosignCli.Sign(&cliwrappers.CosignSignArgs{
+		Image:         s.Params.Image,
+		RekorURL:      s.Params.RekorURL,
+		FulcioURL:     s.Params.FulcioURL,
+		OIDCIssuer:    s.Params.OIDCIssuer,
+		OIDCTokenPath: s.Params.OIDCTokenPath,
+	}, dockerConfigDir)
 }
