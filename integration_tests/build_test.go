@@ -138,20 +138,12 @@ func RunBuild(buildParams BuildParams, imageRegistry ImageRegistry) (*commands.B
 // under .test-containers-storage. Returns the full path to the created directory.
 // This directory can be mounted at /var/lib/containers in the test runner container.
 //
-// When running on MacOS, doesn't create the directory and returns ("", nil).
-// On macOS, containers run in a Linux VM. Overlay storage driver doesn't work reliably with
-// host volume mounts through the VM, so don't use a shared directory on macOS.
-//
 // Why put the directory in the repository root:
 //   - The directory can't be in /tmp, because that is usually a tmpfs which doesn't
 //     support all the operations that buildah needs to do with /var/lib/containers.
 //   - The repository root is an obvious choice for a directory that likely isn't in /tmp,
 //     is writable for the current user and doesn't pollute the user's home directory.
 func createContainerStorageDir() (string, error) {
-	if runtime.GOOS == "darwin" {
-		return "", nil
-	}
-
 	repoRoot, err := filepath.Abs(FindRepoRoot())
 	if err != nil {
 		return "", err
