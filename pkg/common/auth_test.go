@@ -108,6 +108,28 @@ func TestSelectAuth(t *testing.T) {
 	}
 }
 
+func TestGetDefaultAuthFile(t *testing.T) {
+	t.Run("respects DOCKER_CONFIG when set", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		t.Setenv("DOCKER_CONFIG", tmpDir)
+		got := GetDefaultAuthFile()
+		expected := filepath.Join(tmpDir, "config.json")
+		if got != expected {
+			t.Errorf("expected %q, got %q", expected, got)
+		}
+	})
+
+	t.Run("falls back to home dir when DOCKER_CONFIG unset", func(t *testing.T) {
+		t.Setenv("DOCKER_CONFIG", "")
+		got := GetDefaultAuthFile()
+		homeDir, _ := os.UserHomeDir()
+		expected := filepath.Join(homeDir, ".docker", "config.json")
+		if got != expected {
+			t.Errorf("expected %q, got %q", expected, got)
+		}
+	})
+}
+
 func TestFallbackSelectionForDockerIO(t *testing.T) {
 	auths := map[string]any{
 		"auths": map[string]any{
