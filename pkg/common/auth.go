@@ -121,6 +121,9 @@ func findAuth(registryAuths *RegistryAuths, imageRepo string) string {
 }
 
 func GetDefaultAuthFile() string {
+	if dockerConfigDir := os.Getenv("DOCKER_CONFIG"); dockerConfigDir != "" {
+		return filepath.Join(dockerConfigDir, "config.json")
+	}
 	homeDir, _ := os.UserHomeDir()
 	return filepath.Join(homeDir, ".docker", "config.json")
 }
