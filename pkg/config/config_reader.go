@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/konflux-ci/konflux-build-cli/pkg/clients"
+	"github.com/konflux-ci/konflux-build-cli/pkg/logger"
 	"gopkg.in/ini.v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+var rawConfigLogger = logger.Logger.WithField("logger", "KonfluxConfig")
 
 var NewConfigReader func() (ConfigReader, error) = ConfigReaderFactory
 
@@ -30,6 +34,13 @@ type KonfluxRawConfig struct {
 	HermetoYarnProxy    string
 	// Global setting allowing of forbidding usage of package registry proxies on the cluster level.
 	HermetoPackageRegistryProxyAllowed string
+}
+
+func (k *KonfluxRawConfig) LogData() {
+	v := reflect.ValueOf(k).Elem()
+	for _, field := range reflect.VisibleFields(v.Type()) {
+		rawConfigLogger.Infof("%s: %s", field.Name, v.FieldByName(field.Name).String())
+	}
 }
 
 // ConfigReader defines the interface for reading config data.
