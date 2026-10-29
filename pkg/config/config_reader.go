@@ -90,6 +90,7 @@ func (k *K8sConfigMapReader) ReadConfigData() (*KonfluxRawConfig, error) {
 		HermetoYarnProxy:                   configMap.Data["package-registry-proxy-yarn-url"],
 		HermetoPackageRegistryProxyAllowed: configMap.Data["allow-package-registry-proxy"],
 	}
+	rawConfig.LogData()
 	return rawConfig, nil
 }
 
@@ -119,6 +120,6 @@ func (y *IniFileReader) ReadConfigData() (*KonfluxRawConfig, error) {
 		HermetoYarnProxy:                   cfg.Section("artifact-registry").Key("package-registry-proxy-yarn-url").String(),
 		HermetoPackageRegistryProxyAllowed: cfg.Section("artifact-registry").Key("allow-package-registry-proxy").String(),
 	}
-
+	rawConfig.LogData()
 	return rawConfig, nil
 }
