@@ -19,21 +19,25 @@ var NewConfigReader func() (ConfigReader, error) = ConfigReaderFactory
 
 // KonfluxRawConfig holds unmodified data that was read from the config source.
 type KonfluxRawConfig struct {
-	// Cache proxy config
-	AllowCacheProxy string
-	HttpProxy       string
-	NoProxy         string
-
-	// Package registry proxy URLs
-	HermetoBundlerProxy string
-	HermetoCargoProxy   string
-	HermetoGomodProxy   string
-	HermetoNpmProxy     string
-	HermetoPipProxy     string
-	HermetoPnpmProxy    string
-	HermetoYarnProxy    string
-	// Global setting allowing of forbidding usage of package registry proxies on the cluster level.
+	AllowCacheProxy                    string
+	HttpProxy                          string
+	NoProxy                            string
+	HermetoBundlerProxy                string
+	HermetoCargoProxy                  string
+	HermetoGomodProxy                  string
+	HermetoNpmProxy                    string
+	HermetoPipProxy                    string
+	HermetoPnpmProxy                   string
+	HermetoYarnProxy                   string
 	HermetoPackageRegistryProxyAllowed string
+	FulcioInternalURL                  string
+	FulcioExternalURL                  string
+	RekorInternalURL                   string
+	RekorExternalURL                   string
+	TufInternalURL                     string
+	TufExternalURL                     string
+	DefaultOIDCIssuer                  string
+	EnableKeylessSigning               string
 }
 
 func (k *KonfluxRawConfig) LogData() {
@@ -76,11 +80,11 @@ func (k *K8sConfigMapReader) ReadConfigData() (*KonfluxRawConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get configmap %s/%s: %w", k.Namespace, k.Name, err)
 	}
-	rawConfig := &KonfluxRawConfig{
-		AllowCacheProxy: configMap.Data["allow-cache-proxy"],
-		HttpProxy:       configMap.Data["http-proxy"],
-		NoProxy:         configMap.Data["no-proxy"],
 
+	rawConfig := &KonfluxRawConfig{
+		AllowCacheProxy:                    configMap.Data["allow-cache-proxy"],
+		HttpProxy:                          configMap.Data["http-proxy"],
+		NoProxy:                            configMap.Data["no-proxy"],
 		HermetoBundlerProxy:                configMap.Data["package-registry-proxy-bundler-url"],
 		HermetoCargoProxy:                  configMap.Data["package-registry-proxy-cargo-url"],
 		HermetoGomodProxy:                  configMap.Data["package-registry-proxy-gomod-url"],
@@ -89,6 +93,14 @@ func (k *K8sConfigMapReader) ReadConfigData() (*KonfluxRawConfig, error) {
 		HermetoPnpmProxy:                   configMap.Data["package-registry-proxy-pnpm-url"],
 		HermetoYarnProxy:                   configMap.Data["package-registry-proxy-yarn-url"],
 		HermetoPackageRegistryProxyAllowed: configMap.Data["allow-package-registry-proxy"],
+		FulcioInternalURL:                  configMap.Data["fulcioInternalUrl"],
+		FulcioExternalURL:                  configMap.Data["fulcioExternalUrl"],
+		RekorInternalURL:                   configMap.Data["rekorInternalUrl"],
+		RekorExternalURL:                   configMap.Data["rekorExternalUrl"],
+		TufInternalURL:                     configMap.Data["tufInternalUrl"],
+		TufExternalURL:                     configMap.Data["tufExternalUrl"],
+		DefaultOIDCIssuer:                  configMap.Data["defaultOIDCIssuer"],
+		EnableKeylessSigning:               configMap.Data["enableKeylessSigning"],
 	}
 	rawConfig.LogData()
 	return rawConfig, nil
@@ -106,19 +118,30 @@ func (y *IniFileReader) ReadConfigData() (*KonfluxRawConfig, error) {
 		return nil, fmt.Errorf("failed to load ini file: %v", err)
 	}
 
-	rawConfig := &KonfluxRawConfig{
-		AllowCacheProxy: cfg.Section("cache-proxy").Key("allow-cache-proxy").String(),
-		HttpProxy:       cfg.Section("cache-proxy").Key("http-proxy").String(),
-		NoProxy:         cfg.Section("cache-proxy").Key("no-proxy").String(),
+	cacheProxy := cfg.Section("cache-proxy")
+	artifactRegistry := cfg.Section("artifact-registry")
+	keylessSigning := cfg.Section("keyless-signing")
 
-		HermetoBundlerProxy:                cfg.Section("artifact-registry").Key("package-registry-proxy-bundler-url").String(),
-		HermetoCargoProxy:                  cfg.Section("artifact-registry").Key("package-registry-proxy-cargo-url").String(),
-		HermetoGomodProxy:                  cfg.Section("artifact-registry").Key("package-registry-proxy-gomod-url").String(),
-		HermetoNpmProxy:                    cfg.Section("artifact-registry").Key("package-registry-proxy-npm-url").String(),
-		HermetoPipProxy:                    cfg.Section("artifact-registry").Key("package-registry-proxy-pip-url").String(),
-		HermetoPnpmProxy:                   cfg.Section("artifact-registry").Key("package-registry-proxy-pnpm-url").String(),
-		HermetoYarnProxy:                   cfg.Section("artifact-registry").Key("package-registry-proxy-yarn-url").String(),
-		HermetoPackageRegistryProxyAllowed: cfg.Section("artifact-registry").Key("allow-package-registry-proxy").String(),
+	rawConfig := &KonfluxRawConfig{
+		AllowCacheProxy:                    cacheProxy.Key("allow-cache-proxy").String(),
+		HttpProxy:                          cacheProxy.Key("http-proxy").String(),
+		NoProxy:                            cacheProxy.Key("no-proxy").String(),
+		HermetoBundlerProxy:                artifactRegistry.Key("package-registry-proxy-bundler-url").String(),
+		HermetoCargoProxy:                  artifactRegistry.Key("package-registry-proxy-cargo-url").String(),
+		HermetoGomodProxy:                  artifactRegistry.Key("package-registry-proxy-gomod-url").String(),
+		HermetoNpmProxy:                    artifactRegistry.Key("package-registry-proxy-npm-url").String(),
+		HermetoPipProxy:                    artifactRegistry.Key("package-registry-proxy-pip-url").String(),
+		HermetoPnpmProxy:                   artifactRegistry.Key("package-registry-proxy-pnpm-url").String(),
+		HermetoYarnProxy:                   artifactRegistry.Key("package-registry-proxy-yarn-url").String(),
+		HermetoPackageRegistryProxyAllowed: artifactRegistry.Key("allow-package-registry-proxy").String(),
+		FulcioInternalURL:                  keylessSigning.Key("fulcioInternalUrl").String(),
+		FulcioExternalURL:                  keylessSigning.Key("fulcioExternalUrl").String(),
+		RekorInternalURL:                   keylessSigning.Key("rekorInternalUrl").String(),
+		RekorExternalURL:                   keylessSigning.Key("rekorExternalUrl").String(),
+		TufInternalURL:                     keylessSigning.Key("tufInternalUrl").String(),
+		TufExternalURL:                     keylessSigning.Key("tufExternalUrl").String(),
+		DefaultOIDCIssuer:                  keylessSigning.Key("defaultOIDCIssuer").String(),
+		EnableKeylessSigning:               keylessSigning.Key("enableKeylessSigning").String(),
 	}
 	rawConfig.LogData()
 	return rawConfig, nil
