@@ -27,3 +27,9 @@ For example:
 mkdir .tmpdir
 TMPDIR="$(pwd)/.tmpdir" go test -tags exclude_graphdriver_btrfs ./...
 ```
+
+## Running tests with coverage (courtney)
+
+To run unit tests with courtney coverage filtering (same as CI):
+```sh
+make unit-test-courtney

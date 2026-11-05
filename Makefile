@@ -117,3 +117,22 @@ lint-package-fast: golangci-lint
 .PHONY: lint-fix
 lint-fix: golangci-lint
 	$(GOLANGCI_LINT) run --fix
+
+#####################
+# Courtney Setup
+#####################
+COURTNEY ?= $(LOCALBIN)/courtney
+COURTNEY_VERSION ?= v0.5.1
+
+# Add courtney install target
+.PHONY: courtney
+courtney: $(COURTNEY)
+$(COURTNEY): $(LOCALBIN)
+	@echo "Installing courtney $(COURTNEY_VERSION) into ./bin/"
+	GOBIN=$(LOCALBIN) go install github.com/dave/courtney@$(COURTNEY_VERSION)
+
+# Add courtney test target
+.PHONY: unit-test-courtney
+unit-test-courtney: courtney
+	go mod download
+	$(COURTNEY) -t="-tags=exclude_graphdriver_btrfs" -o cover-courtney.out ./pkg/...
