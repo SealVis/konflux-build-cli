@@ -76,8 +76,9 @@ spec:
               #!/bin/bash
               set -ex
               export PATH="/toolchain/go/bin:$PATH"
+              export HOME=/tmp
               cd /source
-              go test -tags exclude_graphdriver_btrfs -coverprofile=coverage.out -covermode=atomic ./pkg/...
+              make unit-test-courtney
             volumeMounts:
             - name: source
               mountPath: /source
@@ -107,7 +108,7 @@ spec:
               SLUG=$(sed -n '3p' /source/.git-metadata)
               ./codecov upload-process \
                 --flag unit-tests \
-                --file coverage.out \
+                --file cover-courtney.out \
                 --commit-sha "${COMMIT_SHA}" \
                 --branch "${BRANCH}" \
                 --slug "${SLUG}" \
